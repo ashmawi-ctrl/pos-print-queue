@@ -5,7 +5,6 @@ from pathlib import Path
 
 from .models import EnqueueResult, JobStatus, PrintJob
 
-
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS print_jobs (
     id TEXT PRIMARY KEY,
@@ -223,6 +222,49 @@ class QueueStore:
                     job_id,
                 ),
             )
+
+    def recover_stale_processing(
+        self,
+        *,
+        stale_after_seconds: float,
+        now: float | None = None,
+    ) -> int:
+        """Move stale processing jobs back to retry after explicit recovery.
+
+        This operation is intentionally manual. A job left in PROCESSING may
+        have reached the physical printer before a worker crashed, so callers
+        should choose the threshold and recovery moment deliberately.
+        """
+        if stale_after_seconds < 0:
+            raise ValueError("stale_after_seconds cannot be negative")
+
+        timestamp = time.time() if now is None else now
+        cutoff = timestamp - stale_after_seconds
+        reason = (
+            "recovered stale processing job after worker interruption"
+        )
+
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE print_jobs
+                SET status = ?,
+                    next_attempt_at = ?,
+                    last_error = ?,
+                    updated_at = ?
+                WHERE status = ?
+                  AND updated_at <= ?
+                """,
+                (
+                    JobStatus.RETRY.value,
+                    timestamp,
+                    reason,
+                    timestamp,
+                    JobStatus.PROCESSING.value,
+                    cutoff,
+                ),
+            )
+            return cursor.rowcount
 
     def get(self, job_id: str) -> PrintJob | None:
         with self._connect() as connection:

@@ -17,6 +17,7 @@ I built this around a failure mode I have seen in production support: the applic
 - supports raw TCP printers, commonly on port 9100
 - includes a dry-run printer for safe development
 - runs tests and linting in GitHub Actions
+- supports explicit recovery of jobs abandoned in `processing` after worker crashes
 
 ## Why there is an `uncertain` state
 
@@ -133,6 +134,24 @@ Example output:
 ]
 ```
 
+## Recover jobs after a worker crash
+
+A worker marks a job as `processing` before it talks to the printer. If that
+worker process crashes before writing the final state, the job can otherwise
+remain stuck indefinitely.
+
+Recovery is deliberately **not automatic** because a crashed worker may have
+sent data to the physical printer before it disappeared. An operator can
+explicitly recover jobs that have been stuck longer than a chosen threshold:
+
+```bash
+pos-print-queue --db printqueue.db recover-stale --older-than 300
+```
+
+That moves only stale `processing` jobs back to `retry`, records a recovery
+reason, and makes them immediately eligible for a future worker run. Recently
+claimed jobs and jobs in terminal states are left unchanged.
+
 ## Retry behavior
 
 For a safe pre-send failure, retries use exponential backoff:
@@ -181,7 +200,6 @@ More detail is in [docs/delivery-semantics.md](docs/delivery-semantics.md).
 
 ## Next improvements
 
-- stale `processing` job recovery after worker crashes
 - operator command to resolve `uncertain` jobs
 - ESC/POS renderer
 - printer health checks
