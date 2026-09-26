@@ -1,10 +1,9 @@
-from pathlib import Path
 import sqlite3
 import time
 import uuid
+from pathlib import Path
 
 from .models import EnqueueResult, JobStatus, PrintJob
-
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS print_jobs (
