@@ -48,6 +48,18 @@ def build_parser() -> argparse.ArgumentParser:
     listing = subparsers.add_parser("list", help="List recent print jobs")
     listing.add_argument("--limit", type=int, default=20)
 
+    recover = subparsers.add_parser(
+        "recover-stale",
+        help="Move stale processing jobs back to retry explicitly",
+    )
+    recover.add_argument(
+        "--older-than",
+        type=float,
+        required=True,
+        metavar="SECONDS",
+        help="Only recover processing jobs older than this threshold",
+    )
+
     return parser
 
 
@@ -116,6 +128,21 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "list":
         jobs = [_job_to_dict(job) for job in store.list(limit=args.limit)]
         print(json.dumps(jobs, indent=2))
+        return 0
+
+    if args.command == "recover-stale":
+        recovered = store.recover_stale_processing(
+            stale_after_seconds=args.older_than,
+        )
+        print(
+            json.dumps(
+                {
+                    "recovered_jobs": recovered,
+                    "older_than_seconds": args.older_than,
+                },
+                indent=2,
+            )
+        )
         return 0
 
     raise AssertionError(f"unexpected command: {args.command}")
