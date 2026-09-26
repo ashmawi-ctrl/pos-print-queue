@@ -1,5 +1,7 @@
 # POS Print Queue
 
+[![quality](https://github.com/ashmawi-ctrl/pos-print-queue/actions/workflows/quality.yml/badge.svg)](https://github.com/ashmawi-ctrl/pos-print-queue/actions/workflows/quality.yml)
+
 A small reliability-focused print queue for POS environments where network drops, user retries, and raw TCP printers can cause duplicate receipts.
 
 I built this around a failure mode I have seen in production support: the application reports a print attempt as failed, the user clicks **Print** again, and both requests eventually reach the printer. The important problem is not just retrying — it is knowing **when retrying is safe**.
