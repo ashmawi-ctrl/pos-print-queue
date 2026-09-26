@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from posqueue.models import JobStatus
-from posqueue.printer import PrintReceipt, PrinterDeliveryError
+from posqueue.printer import PrinterDeliveryError, PrintReceipt
 from posqueue.service import PrintQueue
 from posqueue.storage import QueueStore
 
